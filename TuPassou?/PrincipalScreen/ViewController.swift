@@ -18,7 +18,9 @@ class ContentViewController: UIViewController, UITableViewDataSource{ //UITableV
     override func viewDidLoad() { //Metodo chamado quando a tela é carregada
         super.viewDidLoad()
         
-        navigationItem.title = "Suas Cadeiras" // Define o título que aparece na parte superior, caso a tela esteja dentro de um UINavigationController
+        navigationItem.title = "Suas Cadeiras"// Define o título que aparece na parte superior, caso a tela esteja dentro de um UINavigationController
+        
+        
         view.addSubview(tableView) // Pega a tabela criada e coloca fisicamente na tela principal
         tableView.translatesAutoresizingMaskIntoConstraints = false // Tem que ser false quando eu for posicionar os elementos por código, usando contrains (restrições)
         
@@ -27,17 +29,27 @@ class ContentViewController: UIViewController, UITableViewDataSource{ //UITableV
             tableView.rightAnchor.constraint(equalTo: view.rightAnchor),
             tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-                                    ])
-        //
-        tableView.backgroundColor = .clear // Deixa o fundo da tabela totalmente transparente (para que o degradê apareça
+        ])
+        
         tableView.dataSource = self // Fala que quem vai fornecer os dados é a própria classe
         
-        // tableView.backgroundView = UIHostingConfiguration /*Permite colocar componentes do swiftUI*/{ //desenhando o fundo da tela
-        // LinearGradient(gradient: Gradient(colors: [.red, .orange]), startPoint: .top, endPoint: .bottom) // Cria o degradê
-        // .ignoresSafeArea()
-        // }
-        // .margins(.all, 0)
-        // .makeContentView() // Converte o codigo swift em uma UIView tradicional
+        navigationItem.rightBarButtonItem = UIBarButtonItem( //cria um botão do lado direito da barra de Navegação superior
+            primaryAction: UIAction ( // Da ação ao botão
+                title: "Add User",
+                image: .init(systemName: "plus") ) { _ in //executado quando o botão é clicado
+                    let sheet = UINavigationController (
+                        rootViewController: AddMatterViewController ( // Instancia uma nova tela e a envolve dentro do contre de navegação
+                            modelContext: self.container.mainContext, // A chave do banco de dados, qnd a nova tela for salvar algo ela salva no mesmo lugar que a tela principal lê
+                            onAdd: self.loadMatter // Isso é para ao salvar a lista seja atualizada
+                        )
+                    )
+                    self.present(sheet, animated: true) //Pra tela subir igual sheet
+                }
+        )
+    }
+    
+    func loadMatter() {
+        
     }
     
     // Como a classe assinou o protocolo UITableViewDataSource, ela é obrigada a implementar estes dois métodos:
