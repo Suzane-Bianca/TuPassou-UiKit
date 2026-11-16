@@ -9,9 +9,13 @@ import SwiftData
 
 @Model
 class Matter {
+    var classe: String
     var course: String
+//    var grade: [Int]
     
-    init(course: String) {
+    init(classe: String, course: String/*, grade: [Int]*/) {
+        self.classe = classe
         self.course = course
+//        self.grade = grade
     }
 }
