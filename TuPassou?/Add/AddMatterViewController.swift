@@ -15,7 +15,9 @@ class AddMatterViewController: UIViewController {
     
     private let classeName = UITextField()
     private let courseName = UITextField()
-//    private let 
+    private var gradeField: [UITextField] = []
+    private let calcPicker = UISegmentedControl(items: ["Padrão IF", "Pensonalizado..."])
+    
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
     
     
@@ -59,13 +61,39 @@ class AddMatterViewController: UIViewController {
         
         classeName.placeholder = "Calculo II..."
         courseName.placeholder = "Engenharia de Computação..."
+        
+        calcPicker.selectedSegmentIndex = 0
+        
+        for _ in 0..<4{
+            addGrade()
+        }
+    }
+    
+    private func addGrade() {
+        let gradeTF = UITextField()
+        gradeTF.placeholder = "Nota \(gradeField.count + 1)"
+        gradeTF.keyboardType = .decimalPad
+        gradeField.append(gradeTF)
     }
     
     @objc private func addCourse() {
         let classeName = classeName.text
         let courseName = courseName.text
         
-        let course = Matter(classe: classeName!, course: courseName!)
+        let typeCalc = calcPicker.selectedSegmentIndex == 0 ? "Padrão IF" : "Personalizado..."
+        
+        var notesFloat: [Float] = []
+        
+        for camp in gradeField {
+            if let words = camp.text {
+                let wordWithDot = words.replacingOccurrences(of: ",", with: ".")
+                if let note = Float(wordWithDot){
+                    notesFloat.append(note)
+                }
+            }
+        }
+        
+        let course = Matter(classe: classeName!, course: courseName!, grade: notesFloat, typeCalc: typeCalc)
         
         if courseName != ""{
             modelContext.insert(course)
@@ -79,7 +107,7 @@ class AddMatterViewController: UIViewController {
 extension AddMatterViewController: UITableViewDataSource, UITableViewDelegate {
     
     func numberOfSections(in tableView: UITableView) -> Int {
-        return 2
+        return 4
     }
     
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
@@ -88,12 +116,19 @@ extension AddMatterViewController: UITableViewDataSource, UITableViewDelegate {
                 return "Cadeira"
             case 1:
                 return "Curso"
+            case 2:
+                return "Notas"
+            case 3:
+                return "Tipo de Cálculo"
             default:
                 return nil
         }
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        if section == 2 {
+            return gradeField.count + 1
+        }
         return 1
     }
     
@@ -101,12 +136,38 @@ extension AddMatterViewController: UITableViewDataSource, UITableViewDelegate {
         let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
         cell.selectionStyle = .none
         
+        if indexPath.section == 2 && indexPath.row == gradeField.count {
+            var content = cell.defaultContentConfiguration()
+            content.text = "+"
+            content.textProperties.color = .systemBlue
+            cell.contentConfiguration = content
+            cell.selectionStyle = .default
+            return cell
+        }
+        
+        if indexPath.section == 3 {
+            calcPicker.translatesAutoresizingMaskIntoConstraints = false
+            cell.contentView.addSubview(calcPicker)
+            
+            NSLayoutConstraint.activate([
+                calcPicker.leadingAnchor.constraint(equalTo: cell.contentView.layoutMarginsGuide .leadingAnchor),
+                calcPicker.trailingAnchor.constraint(equalTo: cell.contentView.layoutMarginsGuide .trailingAnchor),
+                calcPicker.topAnchor.constraint(equalTo: cell.contentView.topAnchor, constant: 8),
+                calcPicker.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor, constant: -8)
+                
+            ])
+            
+            return cell
+        }
+        
         let textField: UITextField
         switch indexPath.section {
             case 0:
                 textField = classeName
             case 1:
                 textField = courseName
+            case 2:
+                textField = gradeField[indexPath.row]
             default:
                 textField = UITextField()
         }
@@ -125,5 +186,11 @@ extension AddMatterViewController: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
+        
+        if indexPath.section == 2 && indexPath.row == gradeField.count {
+            addGrade()
+            let newIndex = IndexPath(row: gradeField.count - 1, section: 2)
+            tableView.insertRows(at: [newIndex], with: .automatic)
+        }
     }
 }

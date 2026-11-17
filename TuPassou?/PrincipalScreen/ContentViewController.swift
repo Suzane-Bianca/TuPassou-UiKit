@@ -90,6 +90,19 @@ extension ContentViewController: UITableViewDataSource, UITableViewDelegate{ // 
         
         var contentConfiguration = cell.defaultContentConfiguration() //Estiliza as celulas, cria um modelo padrão de texto e imagem
         contentConfiguration.text = "\(course.classe)" // Pega o número da linha (index) e tranforma em texto
+        contentConfiguration.textProperties.font = UIFont.preferredFont(forTextStyle: .headline)
+        
+        let status = course.calcNotesSemester()
+        
+        contentConfiguration.secondaryText = """
+                 \(course.course)
+                Cálculo: \(course.typeCalc)
+                Nota mínima (por prova): \(status)
+            """
+        
+        contentConfiguration.secondaryTextProperties.numberOfLines = 0
+        contentConfiguration.secondaryTextProperties.color = .secondaryLabel
+        
         cell.contentConfiguration = contentConfiguration
         return cell
     }
