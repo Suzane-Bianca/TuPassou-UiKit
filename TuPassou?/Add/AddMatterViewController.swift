@@ -13,6 +13,9 @@ class AddMatterViewController: UIViewController {
     private let modelContext: ModelContext // Ligação com o banco de dados
     private let onAdd: () -> Void //Clousure, uma função armazenada em uma variável, usada para executar o loadMatter
     
+    private let emojiButton = UIButton(type: .system)
+    private var selectedEmoji: String = "📚"
+    
     private let classeName = UITextField()
     private let courseName = UITextField()
     private var gradeField: [UITextField] = []
@@ -59,6 +62,8 @@ class AddMatterViewController: UIViewController {
         tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
         
+        setupHeaderEmojiView()
+        
         classeName.placeholder = "Calculo II..."
         courseName.placeholder = "Engenharia de Computação..."
         
@@ -67,6 +72,47 @@ class AddMatterViewController: UIViewController {
         for _ in 0..<4{
             addGrade()
         }
+    }
+    
+    private func setupHeaderEmojiView() {
+        let headerContainer = UIView(frame: CGRect(x: 0, y: 0, width: view.frame.width, height: 130))
+        
+        emojiButton.setTitle(selectedEmoji, for: .normal)
+        emojiButton.titleLabel?.font = .systemFont(ofSize: 42)
+        emojiButton.backgroundColor = .systemGray5
+        
+        emojiButton.layer.borderColor = UIColor.systemGray4.cgColor
+        emojiButton.layer.borderWidth = 0
+        
+        emojiButton.layer.cornerRadius = 35 
+        emojiButton.clipsToBounds = true
+        emojiButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        emojiButton.addAction(UIAction { [weak self] _ in
+            self?.tocarParaTrocarEmoji()
+        }, for: .touchUpInside)
+        
+        headerContainer.addSubview(emojiButton)
+        
+        NSLayoutConstraint.activate([
+            emojiButton.centerXAnchor.constraint(equalTo: headerContainer.centerXAnchor),
+            emojiButton.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
+            emojiButton.widthAnchor.constraint(equalToConstant: 70),
+            emojiButton.heightAnchor.constraint(equalToConstant: 70)
+        ])
+        
+        tableView.tableHeaderView = headerContainer
+    }
+    
+    private func tocarParaTrocarEmoji() {
+        let emojis = ["📚", "📐", "💻", "⚡", "🧪", "⚙️", "📊", "🧠"]
+        if let currentIndex = emojis.firstIndex(of: selectedEmoji) {
+            let nextIndex = (currentIndex + 1) % emojis.count
+            selectedEmoji = emojis[nextIndex]
+        } else {
+            selectedEmoji = "📚"
+        }
+        emojiButton.setTitle(selectedEmoji, for: .normal)
     }
     
     private func addGrade() {
@@ -93,7 +139,7 @@ class AddMatterViewController: UIViewController {
             }
         }
         
-        let course = Matter(classe: classeName!, course: courseName!, grade: notesFloat, typeCalc: typeCalc)
+        let course = Matter(classe: classeName!, course: courseName!, grade: notesFloat, typeCalc: typeCalc, emoji: selectedEmoji)
         
         if courseName != ""{
             modelContext.insert(course)

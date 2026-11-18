@@ -14,12 +14,14 @@ class Matter {
     var course: String
     var typeCalc: String
     var grade: [Float]
+    var emoji: String
     
-    init(classe: String, course: String, grade: [Float], typeCalc: String) {
+    init(classe: String, course: String, grade: [Float], typeCalc: String, emoji: String = "📚") {
         self.classe = classe
         self.course = course
         self.grade = grade
         self.typeCalc = typeCalc
+        self.emoji = emoji
     }
 }
 
