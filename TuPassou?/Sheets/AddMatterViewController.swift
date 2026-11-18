@@ -10,8 +10,10 @@ import SwiftData
 
 class AddMatterViewController: UIViewController {
     
-    private let modelContext: ModelContext // Ligação com o banco de dados
-    private let onAdd: () -> Void //Clousure, uma função armazenada em uma variável, usada para executar o loadMatter
+    private let modelContext: ModelContext
+    private let onAdd: () -> Void
+    
+    private var matterToEdit: Matter?
     
     private let emojiButton = UIButton(type: .system)
     private var selectedEmoji: String = "📚"
@@ -19,39 +21,41 @@ class AddMatterViewController: UIViewController {
     private let classeName = UITextField()
     private let courseName = UITextField()
     private var gradeField: [UITextField] = []
-    private let calcPicker = UISegmentedControl(items: ["Padrão IF", "Pensonalizado..."])
+    private let calcPicker = UISegmentedControl(items: ["Padrão IF", "Personalizado..."])
     
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
     
-    
-    // @escaping fala que a função onAdd vai ser guardada na memoria para ser executada mais tarde
-    init(modelContext: ModelContext, onAdd: @escaping () -> Void) { // O construtor que preenche as veriáveis assim que a tela é criada
+    init(modelContext: ModelContext, matterToEdit: Matter? = nil, onAdd: @escaping () -> Void) {
         self.modelContext = modelContext
+        self.matterToEdit = matterToEdit
         self.onAdd = onAdd
-        super.init(nibName: nil, bundle: nil) //coonstrução padrao da apple
+        super.init(nibName: nil, bundle: nil)
     }
     
-    @available(*, unavailable) //Obrigatório, serve para proibir o uso dessa tela via Storyboard
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        view.backgroundColor = .systemGroupedBackground
         view.addSubview(tableView)
         
-        navigationItem.title = "Nova Cadeira"
+        // O título muda dinamicamente!
+        navigationItem.title = matterToEdit == nil ? "Nova Cadeira" : "Editar Cadeira"
         navigationItem.largeTitleDisplayMode = .never
+        
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "checkmark"),
             style: .prominent,
             target: self,
             action: #selector(addCourse)
         )
+//        navigationItem.rightBarButtonItem?.tintColor = UIColor(red: 160/255, green: 210/255, blue: 160/255, alpha: 1.0)
         
-        tableView.translatesAutoresizingMaskIntoConstraints = false // Tem que ser false quando eu for posicionar os elementos por código, usando contrains (restrições)
-        
-        NSLayoutConstraint.activate([ // Pega as 4 bordas da tabela e as "cola" (ancora) nas 4 bordas da tela principal (assim a tabela vai ocupar a tela inteira
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
             tableView.leftAnchor.constraint(equalTo: view.leftAnchor),
             tableView.rightAnchor.constraint(equalTo: view.rightAnchor),
             tableView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -62,29 +66,67 @@ class AddMatterViewController: UIViewController {
         tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
         
-        setupHeaderEmojiView()
+        tableView.keyboardDismissMode = .onDrag
         
-        classeName.placeholder = "Calculo II..."
+        NotificationCenter.default.addObserver(self, selector: #selector(tecladoSurgiu), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(tecladoSumiu), name: UIResponder.keyboardWillHideNotification, object: nil)
+        
+        classeName.placeholder = "Cálculo II..."
         courseName.placeholder = "Engenharia de Computação..."
         
-        calcPicker.selectedSegmentIndex = 0
-        
-        for _ in 0..<4{
-            addGrade()
+        if let cadeiraExistente = matterToEdit {
+            classeName.text = cadeiraExistente.classe
+            courseName.text = cadeiraExistente.course
+            selectedEmoji = cadeiraExistente.emoji
+            calcPicker.selectedSegmentIndex = cadeiraExistente.typeCalc == "Padrão IF" ? 0 : 1
+            
+            for (index, nota) in cadeiraExistente.grade.enumerated() {
+                let gradeTF = UITextField()
+                gradeTF.placeholder = "Nota \(index + 1)"
+                gradeTF.keyboardType = .decimalPad
+                
+                let stringNota = String(nota)
+                gradeTF.text = stringNota.hasSuffix(".0") ? String(Int(nota)) : stringNota.replacingOccurrences(of: ".", with: ",")
+                
+                gradeField.append(gradeTF)
+            }
+            
+            while gradeField.count < 4 {
+                addGrade()
+            }
+            
+        } else {
+            calcPicker.selectedSegmentIndex = 0
+            for _ in 0..<4 {
+                addGrade()
+            }
         }
+        
+        setupHeaderEmojiView()
     }
+    
+        @objc private func tecladoSurgiu(notification: NSNotification) {
+            if let infoTeclado = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue {
+                let alturaTeclado = infoTeclado.cgRectValue.height
+                
+                tableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: alturaTeclado + 20, right: 0)
+                tableView.scrollIndicatorInsets = tableView.contentInset
+            }
+        }
+        
+        @objc private func tecladoSumiu(notification: NSNotification) {
+            tableView.contentInset = .zero
+            tableView.scrollIndicatorInsets = .zero
+        }
     
     private func setupHeaderEmojiView() {
         let headerContainer = UIView(frame: CGRect(x: 0, y: 0, width: view.frame.width, height: 130))
         
         emojiButton.setTitle(selectedEmoji, for: .normal)
-        emojiButton.titleLabel?.font = .systemFont(ofSize: 42)
+        emojiButton.titleLabel?.font = .systemFont(ofSize: 48)
         emojiButton.backgroundColor = .systemGray5
-        
-        emojiButton.layer.borderColor = UIColor.systemGray4.cgColor
         emojiButton.layer.borderWidth = 0
-        
-        emojiButton.layer.cornerRadius = 35 
+        emojiButton.layer.cornerRadius = 45
         emojiButton.clipsToBounds = true
         emojiButton.translatesAutoresizingMaskIntoConstraints = false
         
@@ -97,8 +139,8 @@ class AddMatterViewController: UIViewController {
         NSLayoutConstraint.activate([
             emojiButton.centerXAnchor.constraint(equalTo: headerContainer.centerXAnchor),
             emojiButton.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
-            emojiButton.widthAnchor.constraint(equalToConstant: 70),
-            emojiButton.heightAnchor.constraint(equalToConstant: 70)
+            emojiButton.widthAnchor.constraint(equalToConstant: 90),
+            emojiButton.heightAnchor.constraint(equalToConstant: 90)
         ])
         
         tableView.tableHeaderView = headerContainer
@@ -123,31 +165,41 @@ class AddMatterViewController: UIViewController {
     }
     
     @objc private func addCourse() {
-        let classeName = classeName.text
-        let courseName = courseName.text
+        let name = classeName.text ?? ""
+        let course = courseName.text ?? ""
         
         let typeCalc = calcPicker.selectedSegmentIndex == 0 ? "Padrão IF" : "Personalizado..."
         
         var notesFloat: [Float] = []
         
         for camp in gradeField {
-            if let words = camp.text {
+            if let words = camp.text, !words.isEmpty {
                 let wordWithDot = words.replacingOccurrences(of: ",", with: ".")
-                if let note = Float(wordWithDot){
+                if let note = Float(wordWithDot) {
                     notesFloat.append(note)
                 }
             }
         }
         
-        let course = Matter(classe: classeName!, course: courseName!, grade: notesFloat, typeCalc: typeCalc, emoji: selectedEmoji)
-        
-        if courseName != ""{
-            modelContext.insert(course)
+        if name.isEmpty {
+            dismiss(animated: true)
+            return
         }
+        
+        if let cadeiraExistente = matterToEdit {
+            cadeiraExistente.classe = name
+            cadeiraExistente.course = course
+            cadeiraExistente.typeCalc = typeCalc
+            cadeiraExistente.grade = notesFloat
+            cadeiraExistente.emoji = selectedEmoji
+        } else {
+            let newMatter = Matter(classe: name, course: course, grade: notesFloat, typeCalc: typeCalc, emoji: selectedEmoji)
+            modelContext.insert(newMatter)
+        }
+        
         onAdd()
         dismiss(animated: true)
     }
-
 }
 
 extension AddMatterViewController: UITableViewDataSource, UITableViewDelegate {
