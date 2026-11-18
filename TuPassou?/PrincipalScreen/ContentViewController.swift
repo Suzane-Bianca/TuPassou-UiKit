@@ -15,13 +15,34 @@ class ContentViewController: UIViewController{ //UITableViewDataSource protocolo
     private let container = try! ModelContainer(for: Matter.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))//Banco de dados que vai guardar as informaçÕes
     private var classes: [Matter] = []
     
+    private let gradientLayer = CAGradientLayer()
+    
     override func viewDidLoad() { //Metodo chamado quando a tela é carregada
         super.viewDidLoad()
         
-        navigationItem.title = "Suas Cadeiras"// Define o título que aparece na parte superior, caso a tela esteja dentro de um UINavigationController
+        navigationItem.title = "Suas Cadeiras"
         navigationController?.navigationBar.prefersLargeTitles = true
         
-        view.backgroundColor = .systemGroupedBackground
+        navigationController?.navigationBar.largeTitleTextAttributes = [
+            .foregroundColor: UIColor.white,
+            .baselineOffset: 15.0
+        ]
+        navigationController?.navigationBar.titleTextAttributes = [.foregroundColor: UIColor.white]
+        
+        let greenApp = UIColor(red: 8/255, green: 150/255, blue: 88/255, alpha: 1.0)
+        gradientLayer.colors = [greenApp.cgColor, UIColor.systemGray6.cgColor]
+        gradientLayer.locations = [0.0, 1.0]
+        
+        view.layer.insertSublayer(gradientLayer, at: 0)
+        
+        view.backgroundColor = .clear
+        tableView.backgroundColor = .clear
+        
+        if #available(iOS 15.0, *) {
+            tableView.sectionHeaderTopPadding = 0.0
+        }
+        
+        tableView.backgroundView = nil
         
         view.addSubview(tableView) // Pega a tabela criada e coloca fisicamente na tela principal
         tableView.translatesAutoresizingMaskIntoConstraints = false // Tem que ser false quando eu for posicionar os elementos por código, usando contrains (restrições)
@@ -51,13 +72,19 @@ class ContentViewController: UIViewController{ //UITableViewDataSource protocolo
             image: UIImage(systemName: "plus"),
             primaryAction: addMatter
         )
-            
+        
         buttonAdd.style = .prominent //pra deixar azul
         
         navigationItem.rightBarButtonItem = buttonAdd
 
         
         loadMatter()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        gradientLayer.frame = view.bounds
     }
     
     func loadMatter() {
@@ -68,24 +95,25 @@ class ContentViewController: UIViewController{ //UITableViewDataSource protocolo
     }
     
     func deleteMatter(at indexPath: IndexPath) {
-        let course = classes[indexPath.row] //Usa o index para encontrar o item
+        let course = classes[indexPath.section] //Usa o index para encontrar o item
         container.mainContext.delete(course) //Vai no banco de dados e apaga
-        classes.remove(at: indexPath.row) //Apaga do Array
-        tableView.deleteRows(at: [indexPath], with: .automatic) //Animação para apagar de forma suave
-    }
+        classes.remove(at: indexPath.section) //Apaga do Array
+        tableView.deleteSections(IndexSet(integer: indexPath.section), with: .automatic)    }
     
 }
     
 extension ContentViewController: UITableViewDataSource, UITableViewDelegate{ // So para organizar
-    
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return classes.count
+    }
     
     // Como a classe assinou o protocolo UITableViewDataSource, ela é obrigada a implementar estes dois métodos:
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return classes.count //Diz para a tabela quantas linhas ela terá
+        return 1 //Diz para a tabela quantas linhas ela terá
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt /*Desenha cada linha na tela*/ indexPath: IndexPath) -> UITableViewCell {
-        let course = classes[indexPath.row] //Cria uma celula generica em branco
+        let course = classes[indexPath.section] //Cria uma celula generica em branco
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) //puxa la do register para economizar memoria
         
         var contentConfiguration = cell.defaultContentConfiguration() //Estiliza as celulas, cria um modelo padrão de texto e imagem
@@ -107,11 +135,6 @@ extension ContentViewController: UITableViewDataSource, UITableViewDelegate{ // 
         return cell
     }
     
-//    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-//        let course = courses[indexPath.row]
-//        print(course.course)
-//    }
-    
     func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? { //É o que acontece quando desliza a linha da direita para a esquerda
         let action = UIContextualAction(style: .destructive, title: "Delete", handler: { (_, _, completion) in
             self.deleteMatter(at: indexPath)
@@ -119,6 +142,23 @@ extension ContentViewController: UITableViewDataSource, UITableViewDelegate{ // 
         })
         action.image = UIImage(systemName: "trash")
         return UISwipeActionsConfiguration(actions: [action])
+    }
+    
+    
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        return 8.0
+    }
+    
+    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        return UIView()
+    }
+    
+    func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+        return 8.0
+    }
+    
+    func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
+        return UIView()
     }
 }
     
